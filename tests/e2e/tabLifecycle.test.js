@@ -21,6 +21,24 @@ describe('Tab Lifecycle', () => {
     expect(health.engine).toBe('camoufox');
   });
   
+  test('exports and checkpoints session cookies for silent reauthentication', async () => {
+    const client = createClient(serverUrl);
+    try {
+      const response = await fetch(`${serverUrl}/sessions/${client.userId}/storage_state`);
+      expect(response.status).toBe(200);
+      expect((await response.json()).cookies).toEqual([]);
+      await client.request('POST', `/sessions/${client.userId}/cookies`, {
+        cookies: [{ name: 'receipt_session', value: 'test-only', domain: 'example.test', path: '/', httpOnly: true }],
+      });
+      const state = await client.request('GET', `/sessions/${client.userId}/storage_state`);
+      expect(state.cookies).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: 'receipt_session', value: 'test-only', httpOnly: true }),
+      ]));
+    } finally {
+      await client.cleanup();
+    }
+  });
+
   test('create tab without URL', async () => {
     const client = createClient(serverUrl);
     

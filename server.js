@@ -330,6 +330,43 @@ function validateUrl(url) {
 
 // isLoopbackAddress -- now imported from lib/auth.js (see top of file)
 
+/**
+ * @openapi
+ * /sessions/{userId}/storage_state:
+ *   get:
+ *     tags: [Sessions]
+ *     summary: Export and checkpoint browser authentication state
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Playwright cookies and origin storage, never cached.
+ *       403:
+ *         description: Requires API key or a loopback request.
+ *       500:
+ *         description: Session state could not be exported.
+ */
+app.get('/sessions/:userId/storage_state', authMiddleware(), async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    const userId = normalizeUserId(req.params.userId);
+    const session = await getSession(userId);
+    const storageState = await session.context.storageState();
+    await pluginEvents.emitAsync('session:storage:export', { userId, storageState });
+    log('info', 'session state exported', { reqId: req.reqId, userId, cookies: storageState.cookies.length });
+    res.json(storageState);
+  } catch (err) {
+    log('error', 'session state export failed', { reqId: req.reqId, error: safeError(err) });
+    res.status(500).json({ error: safeError(err) });
+  }
+});
+
 // Import cookies into a user's browser context (Playwright cookies format)
 // POST /sessions/:userId/cookies { cookies: Cookie[] }
 //
