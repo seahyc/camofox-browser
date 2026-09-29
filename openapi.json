@@ -82,6 +82,40 @@
     }
   },
   "paths": {
+    "/sessions/{userId}/storage_state": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Export and checkpoint browser authentication state",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Playwright cookies and origin storage, never cached."
+          },
+          "403": {
+            "description": "Requires API key or a loopback request."
+          },
+          "500": {
+            "description": "Session state could not be exported."
+          }
+        }
+      }
+    },
     "/sessions/{userId}/cookies": {
       "post": {
         "tags": [
